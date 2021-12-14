@@ -1,0 +1,260 @@
+---
+title: "Retail Analysis"
+author: "DINESH RAJAN R A"
+date: "6/4/2021"
+output:
+  html_document:
+    df_print: paged
+---
+
+*Reading the files*
+
+```{r}
+customer=read.csv("C:\\Users\\DELL\\Downloads\\Customer.csv",header = TRUE,stringsAsFactors = FALSE,na.strings = c("","NA"))
+products=read.csv("C:\\Users\\DELL\\Downloads\\prod_cat_info.csv",header= TRUE,stringsAsFactors = FALSE,na.strings = c("","NA"))
+transaction=read.csv("C:\\Users\\DELL\\Downloads\\Transactions.csv",header = TRUE,stringsAsFactors = FALSE,na.strings = c("","NA"))
+```
+
+*Loading the libraries*
+
+```{r}
+library(dplyr)
+library(ggplot2)
+```
+
+**1. Merge the datasets Customers, Product Hierarchy and Transactions as Customer_Final. Ensure to keep all customers who have done transactions with us and select the join type accordingly.**
+
+**1. a) Merge using the base merge()**
+
+```{r}
+trans=merge(transaction,
+            customer,
+            by.x = "cust_id",
+            by.y = "customer_Id",
+            all.x = TRUE,
+            all.y = FALSE)
+cust=merge(trans,
+           products,
+           by.x=c("prod_cat_code","prod_subcat_code"),
+           by.y=c("prod_cat_code","prod_sub_cat_code"),
+           all.x = TRUE,
+           all.y = FALSE)
+
+cat('Dimensions of dataframe obtained through merge(): ', dim(cust))
+```
+
+*1. b) Merge using Dplyr merge functions*
+
+```{r}
+trans1=left_join(transaction,
+                 customer,
+                 by=c("cust_id" = "customer_Id"))
+Customer_Final=left_join(trans1,
+                products,
+                by=c("prod_cat_code" = "prod_cat_code",
+                     "prod_subcat_code" = "prod_sub_cat_code"))
+cat('Dimensions of dataframe obtained through dplyr(): ', dim(Customer_Final))
+```
+
+**2. Prepare a summary report for the merged data set.**
+
+*2. a) Get the column names and their corresponding data types.*
+
+```{r}
+str(Customer_Final)
+```
+
+*2. b) Top/Bottom 10 observations*
+
+```{r}
+head(Customer_Final,n=10)
+tail(Customer_Final,n=10)
+```
+
+*2. c) “Five-number summary” for continuous variables (min, Q1, median,Q3 and max)*
+
+```{r}
+summary(select(Customer_Final,c(Qty,Rate,Tax,total_amt)))
+```
+
+*2. d) Frequency tables for all the categorical variables*
+
+```{r}
+table(select(Customer_Final,c(Gender,Store_type,prod_cat,prod_subcat)))
+```
+
+
+**3. Generate histograms for all continuous variables and frequency bars for categorical variables.**
+
+*Histograms for continuous variables*
+
+```{r}
+quantity=ggplot(Customer_Final,aes(x=Qty)) + geom_histogram(bins=30,color="red",fill="orange",linetype="dashed") +
+  ggtitle("HISTOGRAM FOR QUANTITY ")+
+  xlab("QUANTITY")+
+  ylab("COUNT")
+plot(quantity)
+```
+```{r}
+rate=ggplot(Customer_Final,aes(x=Rate)) + geom_histogram(bins=30,color="red",fill="orange",linetype="dashed") +
+  ggtitle("HISTOGRAM FOR RATE ")+
+  xlab("RATE")+
+  ylab("COUNT")
+plot(rate)
+```
+```{r}
+tax=ggplot(Customer_Final,aes(x=Tax)) + geom_histogram(bins=30,color="red",fill="orange",linetype="dashed") +
+ggtitle("HISTOGRAM FOR TAX ")+
+xlab("TAX")+
+ylab("COUNT")
+plot(tax)
+```
+```{r}
+total_amt=ggplot(Customer_Final,aes(x=total_amt)) + geom_histogram(bins=30,color="red",fill="orange",linetype="dashed") +
+ggtitle("HISTOGRAM FOR TOTAL AMOUNT ")+
+xlab("TOTAL AMOUNT")+
+ylab("COUNT")
+plot(total_amt)
+```
+
+*Frequency bars for continuous variables*
+
+```{r}
+quantity=ggplot(Customer_Final,aes(x=Qty)) + geom_bar(color="red",fill="orange",linetype="dashed") +
+  ggtitle("FREQUENCY BAR FOR QUANTITY ")+
+  xlab("QUANTITY")+
+  ylab("COUNT")
+plot(quantity)
+```
+```{r}
+rate=ggplot(Customer_Final,aes(x=Rate)) + geom_bar(color="red",fill="orange",linetype="dashed") +
+  ggtitle("FREQUENCY BAR FOR RATE ")+
+  xlab("RATE")+
+  ylab("COUNT")
+plot(rate)
+```
+```{r}
+tax=ggplot(Customer_Final,aes(x=Tax)) + geom_bar(color="red",fill="orange",linetype="dashed") +
+  ggtitle("FREQUENCY BAR FOR TAX ")+
+  xlab("TAX")+
+  ylab("COUNT")
+plot(tax)
+```
+```{r}
+total_amt=ggplot(Customer_Final,aes(x=total_amt)) + geom_bar(color="red",fill="orange",linetype="dashed") +
+  ggtitle("FREQUENCY BAR FOR TOTAL AMOUNT ")+
+  xlab("TOTAL AMOUNT")+
+  ylab("COUNT")
+plot(total_amt)
+```
+
+**4. Calculate the following information using the merged dataset :**
+
+*4 a) Calculate Time period of the available transaction data.*
+
+```{r}
+difftime("2014-02-28","2012-01-01",units="days")
+```
+
+*4 b) Calculate count of transactions where the total amount of transaction was negative*
+
+```{r}
+count(filter(Customer_Final,total_amt < 0))
+```
+
+**5. Analyze which product categories are more popular among females vs male customers.**
+
+*Most popular categories among males*
+
+```{r}
+male=select(Customer_Final,c("Gender","prod_cat")) %>%
+  filter(Gender=="M") %>% 
+  group_by(prod_cat) %>%
+  count(prod_cat)
+arrange(male,desc(n))
+```
+
+*Most popular categories among Females*
+
+```{r}
+female=select(Customer_Final,c("Gender","prod_cat")) %>%
+  filter(Gender=="F") %>% 
+  group_by(prod_cat) %>%
+  count(prod_cat)
+arrange(female,desc(n))
+```
+
+*The top 3 categories for both males and females are:*
+
+* Books
+
+* Electronics
+
+* Home and kitchen
+
+**6. Which City code has the maximum customers and what was the percentage of customers from that city?**
+
+*Percentage of customers belonging to different city codes sorted in descending order:*
+
+```{r}
+code=select(Customer_Final,'city_code')
+c1=group_by(code,city_code) 
+c1=count(c1)
+sum=sum(c1$n)
+
+c1=mutate(c1,percent= (n / sum) *100)
+arrange(c1,desc(percent))
+```
+
+The highest percentage of customers come from city code 4 (10.51%)
+
+**7. Which store type sells the maximum products by value and by quantity?**
+
+*Products sold by value:*
+
+```{r}
+d1=select(Customer_Final,c('Store_type','Qty'))
+d1=group_by(d1,Store_type)
+d1=count(d1)
+d1=arrange(d1,desc(n))
+d1
+```
+
+```{r}
+d2=select(Customer_Final,c('Store_type','Rate'))
+d2=group_by(d2,Store_type)
+d2=count(d2)
+d2=arrange(d2,desc(n))
+d2
+```
+
+
+**8. What was the total amount earned from the "Electronics" and "Clothing"categories from Flagship Stores?**
+
+```{r}
+flg=select(Customer_Final,c('Store_type','prod_cat','total_amt'))
+  
+flg=filter(flg,Store_type=='Flagship store')
+flg=filter(flg,prod_cat==('Electronics') | prod_cat==('Clothing'))
+summarise(flg,sum(total_amt))
+```
+
+**9. What was the total amount earned from "Male" customers under the "Electronics" category?**
+
+```{r}
+male_electronics=select(Customer_Final,c('Gender','prod_cat','total_amt')) %>%
+  filter(Gender=="M" & prod_cat=="Electronics") %>%
+  summarise(sum(total_amt))
+male_electronics
+```
+
+**10. How many customers have more than 10 unique transactions, after removing all transactions which have any negative amounts?**
+
+```{r}
+uni=select(Customer_Final,c('transaction_id','cust_id','Qty','Rate','total_amt')) %>%
+  filter(Qty > 0 & Rate > 0 & total_amt > 0) %>%
+  count(cust_id) %>%
+  filter(n >10)
+
+count(uni)
+```
